@@ -4,8 +4,10 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.UUID;
 
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,10 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.tomecode.schemashub.server.Config;
 import com.tomecode.schemashub.server.ServerApp;
 import com.tomecode.schemashub.server.register.localfs.SpacesFsLocal;
 
@@ -50,10 +54,6 @@ public final class CreateSpaceRestTest {
 		restApi = Mockito.mock(RegisterController.class);
 	}
 
-	// TODO: test get space where names contains: blank spaces/characters etc. all
-	// special charaters should be replaces to '-
-	// TODO: test space name should be not longer than 100 characters
-
 	/**
 	 * test create workspace
 	 * 
@@ -61,11 +61,48 @@ public final class CreateSpaceRestTest {
 	 */
 	@Test
 	public final void testCreateWorkspace() throws Exception {
-		// restApi = Mockito.mock(RegisterApiV1.class);
 		String name = UUID.randomUUID().toString();
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(name), LinkOption.NOFOLLOW_LINKS));
+	}
+
+	private static final String genStr(int len) {
+		String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		SecureRandom rnd = new SecureRandom();
+		StringBuilder sb = new StringBuilder(len);
+		for (int i = 0; i < len; i++) {
+			sb.append(chars.charAt(rnd.nextInt(chars.length())));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * test create space longer as
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public final void testCreateWorkspaceWithLongName() throws Exception {
+		String name = genStr(Config.SPACE_NAME_MAX_LENGTH + 30);
+		// create space with name
+		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name));
+		result.andExpect(MockMvcResultMatchers.status().isOk());
+		result.andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is(name.toLowerCase().substring(0, Config.SPACE_NAME_MAX_LENGTH))));
+	}
+
+	/**
+	 * test try to create workspace where name contains special character like blank
+	 * space, etc.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public final void testCreateWorkspaceWithSpacialChars() throws Exception {
+		// create space with name
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/a A ba1-a ? 19-  AAhoj"))//
+				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("a-a-ba1-a")));
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/aa   aa BB     a   "))//
+				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("aa---aa-bb-----a")));
 	}
 
 	/**
@@ -76,8 +113,7 @@ public final class CreateSpaceRestTest {
 	@Test
 	public final void testCreateWorkspaceNull() throws Exception {
 		// restApi = Mockito.mock(RegisterApiV1.class);
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ "))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 
 	/**
@@ -89,12 +125,10 @@ public final class CreateSpaceRestTest {
 	public final void testCreateWorkspacAlreadyExists() throws Exception {
 		// restApi = Mockito.mock(RegisterApiV1.class);
 		String name = UUID.randomUUID().toString();
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create again should be error
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isBadRequest());//
 	}
 
 	/**
@@ -109,13 +143,28 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(wName, rName)), LinkOption.NOFOLLOW_LINKS));
+	}
+
+	/**
+	 * the test try to create a repository with a longer name than allowed
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public final void testCreateRepositoryWithLongName() throws Exception {
+		String wname = UUID.randomUUID().toString();
+		String name = genStr(Config.SPACE_NAME_MAX_LENGTH + 30);
+		// create space with name
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname)).andExpect(MockMvcResultMatchers.status().isOk());
+
+		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/" + name));
+		result.andExpect(MockMvcResultMatchers.status().isOk());
+		result.andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is(name.toLowerCase().substring(0, Config.SPACE_NAME_MAX_LENGTH))));
 	}
 
 	/**
@@ -129,12 +178,10 @@ public final class CreateSpaceRestTest {
 		String wName = UUID.randomUUID().toString();
 
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new empty repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/ "))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 
 	/**
@@ -170,15 +217,12 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 		String rvName = UUID.randomUUID().toString();
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		Path fsPath = Paths.get(wName, rName, rvName);
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath), LinkOption.NOFOLLOW_LINKS));
@@ -202,17 +246,13 @@ public final class CreateSpaceRestTest {
 				.andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ "))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 		// create empty repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ / / "))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ / / ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ "))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
 	}
 
@@ -228,18 +268,33 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 		String rvName = UUID.randomUUID().toString();
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName))//
-				.andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository version
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName))//
-				.andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isBadRequest());
+	}
+
+	/**
+	 * test try to create repository where name contains special character like
+	 * blank space, etc.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public final void testCreateRepositoryWithSpacialChars() throws Exception {
+		String wname = UUID.randomUUID().toString();
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname))//
+				.andExpect(MockMvcResultMatchers.status().isOk());
+
+		// create space with name
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/a A ba1-a ? 19-  AAhoj"))//
+				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("a-a-ba1-a")));
+		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/aa   aa BB     a   "))//
+				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("aa---aa-bb-----a")));
 	}
 
 }
