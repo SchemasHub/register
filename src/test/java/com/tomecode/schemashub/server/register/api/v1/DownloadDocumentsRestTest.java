@@ -94,7 +94,7 @@ public final class DownloadDocumentsRestTest {
 		String[] spaceRef = createAndPushDocsToSpace(files);
 		ResultActions resultActions = performRequest(spaceRef, "/fetchDocuments");
 
-		Path fsFetchFile = FileWalker.mkFile(Paths.get(System.getProperty("user.dir"), "fetch", UUID.randomUUID().toString(), spaceRef[0] + ".zip"));
+		Path fsFetchFile = FileWalker.mkFile(Paths.get(System.getProperty("user.dir"), "target", "fetch", UUID.randomUUID().toString(), spaceRef[0] + ".zip"));
 		resultActions.andExpect(MockMvcResultMatchers.status().isOk());
 		MockHttpServletResponse response = resultActions.andReturn().getResponse();
 		String fnName = ((String) response.getHeaderValue("Content-disposition")).split("filename=")[1];

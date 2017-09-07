@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 import org.junit.Assert;
+import org.junit.Test;
 
 import com.tomecode.schemashub.server.Config;
 import com.tomecode.schemashub.server.register.SpaceException.RepositoryExistsException;
@@ -23,6 +24,10 @@ import junit.framework.TestCase;
  *
  */
 public final class SpaceLocalFsTest extends TestCase {
+
+	static {
+		System.setProperty("spaces.dir", Paths.get(System.getProperty("user.dir"), "target", "spacesApi" + UUID.randomUUID().toString()).toString());
+	}
 
 	/**
 	 * create new space
@@ -43,6 +48,7 @@ public final class SpaceLocalFsTest extends TestCase {
 
 	}
 
+	@Test
 	public final void testInitSpace() throws Exception {
 		SpacesFsLocal spaceLocalFs = createNewSpace(null);
 
@@ -56,6 +62,7 @@ public final class SpaceLocalFsTest extends TestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public final void testCreateWorkspace() throws Exception {
 		SpacesFsLocal space = createNewSpace(null);
 
@@ -73,6 +80,7 @@ public final class SpaceLocalFsTest extends TestCase {
 			workspace = space.newWorkspace("w01");
 			Assert.fail("workspace already exists, exception should be throwed!");
 		} catch (WorkspaceExistsException e) {
+			//
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -83,6 +91,7 @@ public final class SpaceLocalFsTest extends TestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public final void testCreateRepository() throws Exception {
 		SpacesFsLocal space = createNewSpace(null);
 		Workspace workspace = space.newWorkspace(UUID.randomUUID().toString());
@@ -111,6 +120,7 @@ public final class SpaceLocalFsTest extends TestCase {
 	 * 
 	 * @throws Exception
 	 */
+	@Test
 	public final void testCreateRepositoryVersion() throws Exception {
 		SpacesFsLocal space = createNewSpace(null);
 		Workspace workspace = space.newWorkspace(UUID.randomUUID().toString());
