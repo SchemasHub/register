@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tomecode.schemashub.server.common.DownloadStream;
-import com.tomecode.schemashub.server.common.FileWalker;
 import com.tomecode.schemashub.server.common.Pair;
 import com.tomecode.schemashub.server.common.Utils;
 import com.tomecode.schemashub.server.register.SpaceException;
@@ -180,7 +179,7 @@ public class RegisterController {
 	}
 
 	/**
-	 * upload documennts to repository
+	 * upload documents to repository
 	 * 
 	 * @param spaceRef
 	 * @param files
@@ -199,9 +198,10 @@ public class RegisterController {
 				return new ResponseEntity<>(new String("Some files are without name!"), HttpStatus.BAD_REQUEST);
 			}
 		}
-		Pair<RepositoryVersion, ResponseEntity<String>> resolve = resolveSpaceByRef(spaceRef);
-		if (resolve.getKey() == null) {
-			return resolve.getValue();
+		// resolve target version
+		Pair<RepositoryVersion, ResponseEntity<String>> targetVersion = resolveSpaceByRef(spaceRef);
+		if (targetVersion.getKey() == null) {
+			return targetVersion.getValue();
 		}
 
 		log.info("POST /pushDocuments - @spaceRef=" + spaceRef + "Upload documents: @file=" + files.length);
@@ -212,12 +212,7 @@ public class RegisterController {
 		Path path = null;
 		for (MultipartFile uf : files) {
 			try {
-				path = resolve.getKey().getFsContent().resolve(uf.getOriginalFilename());
-				log.info("POST /pushDocuments - @spaceRef=" + spaceRef + " push: " + uf.getOriginalFilename() + " to: " + path);
-				// create dirs (if not exists)
-				FileWalker.mkFile(path);
-				// transform to file
-				uf.transferTo(path.toFile());
+				targetVersion.getKey().pushDocument(uf);
 			} catch (Exception e) {
 				log.error("POST /pushDocuments - @spaceRef=" + spaceRef + " failed to copy from: " + uf.getOriginalFilename() + " file=" + path + " reason: " + e.getMessage(), e);
 				return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

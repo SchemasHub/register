@@ -198,4 +198,36 @@ public final class UploadDocumentsRestTest {
 		}
 	}
 
+	@Test
+	public void testUploadZipFiles() throws Exception {
+		String spaceRef[] = createTestSpace();
+
+		// prepare temp files
+
+		MockMultipartFile[] files = new MockMultipartFile[] { //
+				new MockMultipartFile("file", "sampleZipBasic.zip", "application/zio", Files.readAllBytes(Paths.get(UploadDocumentsRestTest.class.getResource("sampleZipBasic.zip").toURI()))) //
+		};
+
+		// prepare files for rest
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments");
+		for (MockMultipartFile uploadFile : files) {
+			restApi.file(uploadFile);
+		}
+		// upload to
+		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + spaceRef[2]);
+		// send post request
+		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
+
+		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef[0], spaceRef[1], spaceRef[2]));
+		Assert.assertTrue("Repository version not exists", Files.exists(fsVersion, LinkOption.NOFOLLOW_LINKS));
+		Path fsDocs = fsVersion.resolve(".docs");
+		Assert.assertTrue("Repository version not exists", Files.exists(fsDocs, LinkOption.NOFOLLOW_LINKS));
+
+		// check if all files exists
+		Assert.assertTrue(Files.exists(fsDocs.resolve("sampleZip/test.txt"), LinkOption.NOFOLLOW_LINKS));
+		Assert.assertTrue(Files.exists(fsDocs.resolve("sampleZip/json.schema.txt"), LinkOption.NOFOLLOW_LINKS));
+		Assert.assertTrue(Files.exists(fsDocs.resolve("sampleZip/testDir/com/fake/universumJsonSchema"), LinkOption.NOFOLLOW_LINKS));
+		Assert.assertTrue(Files.exists(fsDocs.resolve("sampleZip/testDir/com/fake/universumJsonSchema.json"), LinkOption.NOFOLLOW_LINKS));
+	}
+
 }

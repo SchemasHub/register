@@ -55,7 +55,7 @@ public final class FileWalker {
 		return null;
 	}
 
-	public static final Path mkFile(Path path) throws Exception {
+	public static final Path mkFile(Path path) throws IOException {
 		mkDirs(path.getParent());
 		if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
 			return Files.createFile(path);
@@ -84,12 +84,30 @@ public final class FileWalker {
 		}
 	}
 
+	/**
+	 * file extension
+	 * 
+	 * @param file
+	 * @return
+	 */
 	public static final String getExtension(Path file) {
-		String fileName = file.getFileName().toString();
-		int extIndex = fileName.lastIndexOf(".");
-		if (extIndex != -1) {
-			return fileName.substring(extIndex).toLowerCase();
+		return getExtension(file.getFileName().toString());
+	}
+
+	/**
+	 * get file extension
+	 * 
+	 * @param fileName
+	 * @return
+	 */
+	public final static String getExtension(String fileName) {
+		if (fileName != null) {
+			int extIndex = fileName.lastIndexOf(".");
+			if (extIndex != -1) {
+				return fileName.substring(extIndex).toLowerCase();
+			}
 		}
+
 		return null;
 	}
 

@@ -9,9 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.log4j.Logger;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tomecode.schemashub.server.Config;
@@ -142,6 +144,75 @@ public class RepositoryVersion extends LocalFsDir {
 	 */
 	public enum DownloadPackageType {
 		ZIP
+	}
+
+	/**
+	 * 
+	 * @param uf
+	 * @throws IOException
+	 */
+	public final void pushDocument(MultipartFile uf) throws IOException {
+		log.info("append file: " + uf.getOriginalFilename() + " to version: " + this.getName());
+
+		String fileExt = FileWalker.getExtension(uf.getOriginalFilename());
+		if (".zip".equals(fileExt)) {
+			extractZip(uf.getInputStream());
+		} else {
+			Path path = fsContent.resolve(uf.getOriginalFilename());
+			// create dirs (if not exists)
+			FileWalker.mkFile(path);
+			// transform to file
+			uf.transferTo(path.toFile());
+
+		}
+
+	}
+
+	/**
+	 * extract zip
+	 * 
+	 * @param inputStream
+	 * @throws IOException
+	 */
+	private final void extractZip(InputStream inputStream) throws IOException {
+		byte[] buff = new byte[1024];
+		try (ZipInputStream zis = new ZipInputStream(inputStream)) {
+			ZipEntry ze = null;
+			while ((ze = zis.getNextEntry()) != null) {
+				// extract entity
+				extractEntry(buff, zis, ze.getName());
+			}
+		}
+	}
+
+	/**
+	 * extract entity
+	 * 
+	 * @param buff
+	 * @param zis
+	 * @param entityName
+	 * @throws IOException
+	 */
+	private final void extractEntry(byte[] buff, ZipInputStream zis, String entityName) throws IOException {
+		Path targetFile = this.fsContent.resolve(name);
+		try {
+			FileWalker.mkFile(targetFile);
+		} catch (IOException e) {
+			log.error("version: " + getName() + " failed to create new file: " + targetFile + " in: " + this.getFsContent());
+			throw e;
+		}
+
+		try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+			int l = 0;
+			// write buffer to file
+			while ((l = zis.read(buff)) > 0) {
+				os.write(buff, 0, l);
+			}
+		} catch (IOException e) {
+			log.error("version: " + getName() + " Failed to extract/write entiy: " + entityName + " to file:" + targetFile);
+			throw e;
+		}
+
 	}
 
 }
