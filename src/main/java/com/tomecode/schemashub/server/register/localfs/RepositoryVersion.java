@@ -180,7 +180,9 @@ public class RepositoryVersion extends LocalFsDir {
 			ZipEntry ze = null;
 			while ((ze = zis.getNextEntry()) != null) {
 				// extract entity
-				extractEntry(buff, zis, ze.getName());
+				if (!ze.isDirectory()) {
+					extractEntry(buff, zis, ze.getName());
+				}
 			}
 		}
 	}
@@ -194,7 +196,7 @@ public class RepositoryVersion extends LocalFsDir {
 	 * @throws IOException
 	 */
 	private final void extractEntry(byte[] buff, ZipInputStream zis, String entityName) throws IOException {
-		Path targetFile = this.fsContent.resolve(name);
+		Path targetFile = this.fsContent.resolve(entityName);
 		try {
 			FileWalker.mkFile(targetFile);
 		} catch (IOException e) {
