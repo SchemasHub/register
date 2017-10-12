@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://xmlns.oracle.com/pcbpel/adapter/db/sp/read_order" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:db="http://xmlns.oracle.com/pcbpel/adapter/db/sp/read_order" elementFormDefault="qualified">
+
+   <element name="InputParameters">
+      <complexType>
+         <sequence>
+            <element name="P_ORDER_REF" type="string" db:index="1" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_APP_USER_UID" type="string" db:index="19" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+         </sequence>
+      </complexType>
+   </element>
+   <element name="OutputParameters">
+      <complexType>
+         <sequence>
+            <element name="P_ORDER_APPROVE_DATE_OUT" type="dateTime" db:index="2" db:type="DATE" minOccurs="0" nillable="true"/>
+            <element name="P_ORDER_DATE_OUT" type="dateTime" db:index="3" db:type="DATE" minOccurs="0" nillable="true"/>
+            <element name="P_COMPANY_CODE_OUT" type="string" db:index="4" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_APPROVERS_OUT" type="string" db:index="5" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_APPROVED_BY_BOARD_OUT" type="dateTime" db:index="6" db:type="DATE" minOccurs="0" nillable="true"/>
+            <element name="P_SUPPLY_CAT_OUT" type="string" db:index="7" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_STATUS_OUT" type="string" db:index="8" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_SUPPLIER_ID_OUT" type="string" db:index="9" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_SUM_EXCL_VAT_OUT" type="decimal" db:index="10" db:type="NUMBER" minOccurs="0" nillable="true"/>
+            <element name="P_SUM_INCL_VAT_OUT" type="decimal" db:index="11" db:type="NUMBER" minOccurs="0" nillable="true"/>
+            <element name="P_SUM_OF_VAT_OUT" type="decimal" db:index="12" db:type="NUMBER" minOccurs="0" nillable="true"/>
+            <element name="P_SUM_IN_EUR_OUT" type="decimal" db:index="13" db:type="NUMBER" minOccurs="0" nillable="true"/>
+            <element name="P_DELIVERY_PLACE_OUT" type="string" db:index="14" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_DELIVERY_DATE_OUT" type="dateTime" db:index="15" db:type="DATE" minOccurs="0" nillable="true"/>
+            <element name="P_CONTACT_PERSON_OUT" type="string" db:index="16" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_ORDER_PARTY_UID_OUT" type="string" db:index="17" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+            <element name="P_ORDER_ITEM_LIST_OUT" type="db:RowSet" db:index="18" db:type="RowSet" minOccurs="0" nillable="true"/>
+            <element name="P_RET_CODE_OUT" type="int" db:index="20" db:type="INTEGER" minOccurs="0" nillable="true"/>
+            <element name="P_INFO_MSG_OUT" type="string" db:index="21" db:type="VARCHAR2" minOccurs="0" nillable="true"/>
+         </sequence>
+      </complexType>
+   </element>
+
+   <complexType name="RowSet">
+      <sequence>
+         <element name="Row" minOccurs="0" maxOccurs="unbounded">
+            <complexType>
+               <sequence>
+                  <element name="Column" maxOccurs="unbounded" nillable="true">
+                     <complexType>
+                        <simpleContent>
+                           <extension base="string">
+                              <attribute name="name" type="string" use="required"/>
+                              <attribute name="sqltype" type="string" use="required"/>
+                           </extension>
+                        </simpleContent>
+                     </complexType>
+                  </element>
+               </sequence>
+            </complexType>
+         </element>
+      </sequence>
+   </complexType>
+</schema>

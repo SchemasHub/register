@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions 
+        targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/NotifPrekrocenieTerminu"
+        xmlns:plnk="http://schemas.xmlsoap.org/ws/2003/05/partner-link/"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+        xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/"
+        xmlns:tns="http://xmlns.oracle.com/bpmn/bpmnProcess/NotifPrekrocenieTerminu"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:mfhn="http://xmlns.oracle.com/MissedDeadlineNotification/NotifPrekrocenieTerminu_c/NotifPrekrocenieTerminu"
+        >
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/NotifPrekrocenieTerminu">
+            <xsd:import namespace="http://xmlns.oracle.com/MissedDeadlineNotification/NotifPrekrocenieTerminu_c/NotifPrekrocenieTerminu"
+                        schemaLocation="../xsd/NotifPrekrocenieTerminu_2.3.0.xsd"/>
+        </xsd:schema>
+    </wsdl:types>
+
+    <wsdl:message name="requestMessage">
+        <wsdl:part name="parameters" element="mfhn:NotifPrekrocenieTerminuRequest"/>
+    </wsdl:message>
+
+    <wsdl:portType name="NotifPrekrocenieTerminuPortType">
+        <wsdl:operation name="start">
+            <wsdl:input message="tns:requestMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <plnk:partnerLinkType name="NotifPrekrocenieTerminuPortTypePartnerLinkType">
+        <plnk:role name="NotifPrekrocenieTerminuPortTypeProvider">
+            <plnk:portType name="tns:NotifPrekrocenieTerminuPortType"/>
+        </plnk:role>
+    </plnk:partnerLinkType>
+
+    <wsdl:binding name="NotifPrekrocenieTerminuBinding" type="tns:NotifPrekrocenieTerminuPortType">
+        <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="start">
+            <wsdlsoap:operation style="document" soapAction="start"/>
+            <wsdl:input>
+                <wsdlsoap:body use="literal"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="NotifPrekrocenieTerminuInterface">
+        <wsdl:port name="NotifPrekrocenieTerminuPort" binding="tns:NotifPrekrocenieTerminuBinding">
+        </wsdl:port>
+    </wsdl:service>
+
+</wsdl:definitions>

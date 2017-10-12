@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<xsd:schema attributeFormDefault="unqualified"
+        elementFormDefault="qualified"
+        xmlns:tns="http://xmlns.oracle.com/InvoiceLiquidation/InvoiceLiquidationComposite/ProcessInvoiceProcess"
+        targetNamespace="http://xmlns.oracle.com/InvoiceLiquidation/InvoiceLiquidationComposite/ProcessInvoiceProcess"
+        xmlns:con="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        >
+
+    <xsd:import schemaLocation="./CommonObjects_1.4.0.xsd" namespace="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"/>
+
+    <xsd:complexType name="InvoiceData">
+        <xsd:sequence>
+            <xsd:element name="invoiceNO" type="xsd:string" />
+            <xsd:element name="orderNO" type="xsd:string" />
+            <xsd:element name="created" type="xsd:date" />
+            <xsd:element name="maturity" type="xsd:date" />
+            <xsd:element name="taxLiability" type="xsd:date" />
+            <xsd:element name="orderer" type="con:Company" />
+            <xsd:element name="suplier" type="con:Company" />
+            <xsd:element name="currency" type="xsd:string" />
+            <xsd:element name="detail" type="xsd:string" />
+            <xsd:element name="items" type="con:Items" />
+            <xsd:element name="variableSymbol" type="xsd:string" />
+            <xsd:element name="constantSymbol" type="xsd:string" /> 
+            <xsd:element name="paymentMethod" type="xsd:string" />
+            <xsd:element name="sumWithTax" type="xsd:decimal" />
+            <xsd:element name="sumWithoutTax" type="xsd:decimal" />
+            
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="InvoiceMetaData">
+        <xsd:sequence>
+            <xsd:element name="sumPriceEur" type="xsd:decimal" />
+            <xsd:element name="addedBy" type="xsd:string" />
+            <xsd:element name="addedDate" type="xsd:date" />
+            <xsd:element name="companyCode" type="xsd:string" />
+            <xsd:element name="managerCostValue" type="xsd:decimal" />
+            <xsd:element name="managerCostApprover" type="xsd:string" />
+            <xsd:element name="managerCostManagerName" type="xsd:string" />
+            <xsd:element name="csrValue" type="xsd:decimal" />
+            <xsd:element name="referenceMM" type="xsd:string" />
+            <xsd:element name="typeOfInvoice" type="xsd:string" />
+            <xsd:element name="orderSum" type="xsd:decimal" />
+            <xsd:element name="orderSumExclVat" type="xsd:decimal" />
+            <xsd:element name="paidOrderSum" type="xsd:decimal" />
+            <xsd:element name="costCentre" type="xsd:string" />
+            <xsd:element name="typeOfCost" type="xsd:string" />
+            <xsd:element name="orderApprover" type="xsd:string" />
+            <xsd:element name="caseOfAccounting" type="xsd:string" />
+            <xsd:element name="ordererName" type="xsd:string" />
+            <xsd:element name="isOrderFilled" type="xsd:boolean" />
+            <xsd:element name="invoicePaidDate" type="xsd:date" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="ProcessInvoiceProcessMessage">
+        <xsd:sequence>
+            <xsd:element name="invoiceData" type="tns:InvoiceData" />
+            <xsd:element name="invoiceMetaData" type="tns:InvoiceMetaData" />
+            <xsd:element name="invoiceReference" type="con:DocumentReference" />
+        </xsd:sequence>
+    </xsd:complexType>
+    
+    <xsd:element name="Invoice" type="tns:ProcessInvoiceProcessMessage" />
+
+</xsd:schema>

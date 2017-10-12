@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="DispatcherProcess"
+         targetNamespace="http://xmlns.oracle.com/DocumentCollector/DocumentCollectorComposite/DispatcherProcess"
+         xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+         xmlns:client="http://xmlns.oracle.com/DocumentCollector/DocumentCollectorComposite/DispatcherProcess"
+         xmlns:plnk="http://docs.oasis-open.org/wsbpel/2.0/plnktype"
+         xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+         >
+
+    <wsdl:types>
+        <schema xmlns="http://www.w3.org/2001/XMLSchema">
+            <import namespace="http://xmlns.oracle.com/DocumentCollector/DocumentCollectorComposite/DispatcherProcess"
+                    schemaLocation="../xsd/DispatcherProcess_1.4.0.xsd" />
+        </schema>
+    </wsdl:types>
+
+    <wsdl:message name="DispatcherProcessRequestMessage">
+        <wsdl:part name="payload" element="client:DispatcherProcessRequest"/>
+    </wsdl:message>
+
+    <wsdl:portType name="DispatcherProcess">
+        <wsdl:operation name="process">
+            <wsdl:input  message="client:DispatcherProcessRequestMessage" />
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <plnk:partnerLinkType name="DispatcherProcess">
+        <plnk:role name="DispatcherProcessProvider" portType="client:DispatcherProcess"/>
+    </plnk:partnerLinkType>
+
+    <wsdl:binding name="DispatcherProcessBinding" type="client:DispatcherProcess">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="process">
+            <soap:operation style="document" soapAction="process"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="DispatcherProcessPartnerLink">
+        <wsdl:port name="DispatcherProcess_pt" binding="client:DispatcherProcessBinding">
+        </wsdl:port>
+    </wsdl:service>
+
+</wsdl:definitions>

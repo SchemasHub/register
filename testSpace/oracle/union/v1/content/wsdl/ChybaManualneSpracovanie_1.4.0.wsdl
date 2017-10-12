@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions 
+        targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/ChybaManualneSpracovanie"
+        xmlns:plnk="http://schemas.xmlsoap.org/ws/2003/05/partner-link/"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+        xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/"
+        xmlns:tns="http://xmlns.oracle.com/bpmn/bpmnProcess/ChybaManualneSpracovanie"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:mfhn="http://xmlns.oracle.com/ManualFaultHandling/ChybaManualneSpracovanie_c/ChybaManualneSpracovanie"
+        >
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/ChybaManualneSpracovanie">
+            <xsd:import namespace="http://xmlns.oracle.com/ManualFaultHandling/ChybaManualneSpracovanie_c/ChybaManualneSpracovanie"
+                        schemaLocation="../xsd/ChybaManualneSpracovanie_1.4.0.xsd"/>
+        </xsd:schema>
+    </wsdl:types>
+
+    <wsdl:message name="requestMessage">
+        <wsdl:part name="parameters" element="mfhn:ChybaManualneSpracovanieRequest"/>
+    </wsdl:message>
+    <wsdl:message name="responseMessage">
+        <wsdl:part name="parameters" element="mfhn:ChybaManualneSpracovanieResponse"/>
+    </wsdl:message>
+
+    <wsdl:portType name="ChybaManualneSpracovaniePortType">
+        <wsdl:operation name="start">
+            <wsdl:input message="tns:requestMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:portType name="ChybaManualneSpracovaniePortTypeCallBack">
+        <wsdl:operation name="end">
+            <wsdl:input message="tns:responseMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <plnk:partnerLinkType name="ChybaManualneSpracovaniePortTypePartnerLinkType">
+        <plnk:role name="ChybaManualneSpracovaniePortTypeProvider">
+            <plnk:portType name="tns:ChybaManualneSpracovaniePortType"/>
+        </plnk:role>
+    </plnk:partnerLinkType>
+
+    <wsp:Policy 
+            xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" 
+            wsu:Id="wsaddr_policy" 
+            xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy">
+       <wsaw:UsingAddressing xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+    </wsp:Policy>    
+
+    <wsdl:binding name="ChybaManualneSpracovanieBinding" type="tns:ChybaManualneSpracovaniePortType">
+        <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsp:PolicyReference xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" URI="#wsaddr_policy" wsdl:required="false"/>
+        <wsdl:operation name="start">
+            <wsdlsoap:operation style="document" soapAction="start"/>
+            <wsdl:input>
+                <wsdlsoap:body use="literal"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="ChybaManualneSpracovaniePortTypeCallBackBinding" type="tns:ChybaManualneSpracovaniePortTypeCallBack">
+        <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="end">
+            <wsdlsoap:operation style="document" soapAction="end"/>
+            <wsdl:input>
+                <wsdlsoap:body use="literal" namespace="http://xmlns.oracle.com/bpmn/bpmnProcess/CommonProcess"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="ChybaManualneSpracovanieInterface">
+        <wsdl:port name="ChybaManualneSpracovaniePort" binding="tns:ChybaManualneSpracovanieBinding">
+        </wsdl:port>
+    </wsdl:service>
+
+</wsdl:definitions>
+
+

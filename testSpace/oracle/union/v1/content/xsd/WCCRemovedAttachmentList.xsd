@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?bpmo version="11.1.1.7.0.2.22" build="2.22" fullName="Attachments.WCCRemovedAttachmentList" modifiers="0"?>
+<!--########################################################################################-->
+<!--####                                                                                ####-->
+<!--####          THIS IS AN AUTO GENERATED FILE. PLEASE DO NOT MANUALLY MODIFY         ####-->
+<!--#### CHANGES TO THIS FILE MAY PRODUCE UNEXPECTED BEHAVIOR AND WOULD BE OVERWRITTEN  ####-->
+<!--####                                                                                ####-->
+<!--########################################################################################-->
+<xs:schema targetNamespace="http://xmlns.oracle.com/bpm/bpmobject/Attachments/WCCRemovedAttachmentList" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:ns1="http://xmlns.oracle.com/bpm/bpmobject/Attachments/WCCRemovedAttachment"  xmlns="http://xmlns.oracle.com/bpm/bpmobject/Attachments/WCCRemovedAttachmentList"  xmlns:bpmo="http://xmlns.oracle.com/bpm/bpmobject/" >
+    <xs:import namespace="http://xmlns.oracle.com/bpm/bpmobject/Attachments/WCCRemovedAttachment" schemaLocation="WCCRemovedAttachment.xsd"/>
+    <xs:complexType name="WCCRemovedAttachmentListType">
+        <xs:sequence>
+            <xs:element name="deletedAttachments" nillable="true" type="ns1:WCCRemovedAttachmentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:element name="WCCRemovedAttachmentList" type="WCCRemovedAttachmentListType"/>
+</xs:schema>

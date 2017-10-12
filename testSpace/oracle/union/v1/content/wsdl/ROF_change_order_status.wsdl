@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WL5G3N2:definitions name="change_order_status" targetNamespace="http://xmlns.oracle.com/pcbpel/adapter/db/RegObjednavaok/change_order_status/change_order_status" xmlns:WL5G3N0="http://schemas.xmlsoap.org/ws/2003/05/partner-link/" xmlns:WL5G3N1="http://xmlns.oracle.com/pcbpel/adapter/db/RegObjednavaok/change_order_status/change_order_status" xmlns:WL5G3N2="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N3="http://xmlns.oracle.com/pcbpel/adapter/db/sp/change_order_status">
+  <WL5G3N0:partnerLinkType name="change_order_status_plt">
+    <WL5G3N0:role name="change_order_status_role">
+      <WL5G3N0:portType name="WL5G3N1:change_order_status_ptt"/>
+    </WL5G3N0:role>
+  </WL5G3N0:partnerLinkType>
+  <WL5G3N2:types>
+    <schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:db="http://xmlns.oracle.com/pcbpel/adapter/db/sp/change_order_status" xmlns:plt="http://schemas.xmlsoap.org/ws/2003/05/partner-link/" xmlns:tns="http://xmlns.oracle.com/pcbpel/adapter/db/RegObjednavaok/change_order_status/change_order_status" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+      <import namespace="http://xmlns.oracle.com/pcbpel/adapter/db/sp/change_order_status" schemaLocation="../xsd/ROF_change_order_status_sp.xsd"/>
+    </schema>
+  </WL5G3N2:types>
+  <WL5G3N2:message name="args_in_msg">
+    <WL5G3N2:part element="WL5G3N3:InputParameters" name="InputParameters"/>
+  </WL5G3N2:message>
+  <WL5G3N2:message name="args_out_msg">
+    <WL5G3N2:part element="WL5G3N3:OutputParameters" name="OutputParameters"/>
+  </WL5G3N2:message>
+  <WL5G3N2:portType name="change_order_status_ptt">
+    <WL5G3N2:operation name="change_order_status">
+      <WL5G3N2:input message="WL5G3N1:args_in_msg"/>
+      <WL5G3N2:output message="WL5G3N1:args_out_msg"/>
+    </WL5G3N2:operation>
+  </WL5G3N2:portType>
+</WL5G3N2:definitions>

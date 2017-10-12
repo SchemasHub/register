@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions 
+        targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/CommonProcess"
+        xmlns:plnk="http://schemas.xmlsoap.org/ws/2003/05/partner-link/"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+        xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/"
+        xmlns:tns="http://xmlns.oracle.com/bpmn/bpmnProcess/CommonProcess"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:tns6="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonProcess"
+        >
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://xmlns.oracle.com/bpmn/bpmnProcess/CommonProcess">
+            <xsd:import namespace="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonProcess"
+                        schemaLocation="../xsd/CommonProcess_1.4.0.xsd"/>
+        </xsd:schema>
+    </wsdl:types>
+
+    <wsdl:message name="requestMessage">
+        <wsdl:part name="parameters" element="tns6:CommonProcessRequest"/>
+    </wsdl:message>
+    <wsdl:message name="responseMessage">
+        <wsdl:part name="parameters" element="tns6:CommonProcessResponse"/>
+    </wsdl:message>
+
+    <wsdl:portType name="CommonProcessPortType">
+        <wsdl:operation name="start">
+            <wsdl:input message="tns:requestMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:portType name="CommonProcessPortTypeCallBack">
+        <wsdl:operation name="end">
+            <wsdl:input message="tns:responseMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <plnk:partnerLinkType name="CommonProcessPortTypePartnerLinkType">
+        <plnk:role name="CommonProcessPortTypeProvider">
+            <plnk:portType name="tns:CommonProcessPortType"/>
+        </plnk:role>
+    </plnk:partnerLinkType>
+
+    <wsp:Policy 
+            xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" 
+            wsu:Id="wsaddr_policy" 
+            xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy">
+       <wsaw:UsingAddressing xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+    </wsp:Policy>    
+
+    <wsdl:binding name="CommonProcessBinding" type="tns:CommonProcessPortType">
+        <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsp:PolicyReference xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" URI="#wsaddr_policy" wsdl:required="false"/>
+        <wsdl:operation name="start">
+            <wsdlsoap:operation style="document" soapAction="start"/>
+            <wsdl:input>
+                <wsdlsoap:body use="literal"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="CommonProcessPortTypeCallBackBinding" type="tns:CommonProcessPortTypeCallBack">
+        <wsdlsoap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="end">
+            <wsdlsoap:operation style="document" soapAction="end"/>
+            <wsdl:input>
+                <wsdlsoap:body use="literal" namespace="http://xmlns.oracle.com/bpmn/bpmnProcess/CommonProcess"/>
+            </wsdl:input>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="UniversalBPMProcessInterface">
+        <wsdl:port name="CommonProcessPort" binding="tns:CommonProcessBinding">
+            <wsdlsoap:address location="http://172.24.98.100:7011/soa-infra/services/default/CommonProcessComposite/UniversalBPMProcessInterface"/>
+        </wsdl:port>
+    </wsdl:service>
+
+</wsdl:definitions>
+
+

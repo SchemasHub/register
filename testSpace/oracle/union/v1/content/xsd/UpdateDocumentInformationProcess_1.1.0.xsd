@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<schema attributeFormDefault="unqualified"
+        elementFormDefault="qualified"
+        xmlns:tns="http://xmlns.oracle.com/DocumentCollector/DocumentCollectorComposite/UpdateDocumentInformationProcess"
+        targetNamespace="http://xmlns.oracle.com/DocumentCollector/DocumentCollectorComposite/UpdateDocumentInformationProcess"
+        xmlns:con="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"
+        xmlns="http://www.w3.org/2001/XMLSchema"
+        >
+
+    <import schemaLocation="./CommonObjects_1.4.0.xsd" namespace="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"/>
+
+    <element name="UpdateDocInfoProcessRequest">
+        <complexType>
+            <sequence>
+                <element name="documentInformation" type="con:DocumentInformationType"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="UpdateDocInfoProcessResponse">
+        <complexType>
+            <sequence>
+                <element name="documentInformation" type="con:DocumentInformationType"/>
+            </sequence>
+        </complexType>
+    </element>
+</schema>

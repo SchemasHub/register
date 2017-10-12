@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<xsd:schema attributeFormDefault="unqualified"
+        elementFormDefault="qualified"
+        xmlns="http://xmlns.oracle.com/MissedDeadlineNotification/NotifPrekrocenieTerminu_c/NotifPrekrocenieTerminu"
+        xmlns:mfhn="http://xmlns.oracle.com/MissedDeadlineNotification/NotifPrekrocenieTerminu_c/NotifPrekrocenieTerminu"
+        targetNamespace="http://xmlns.oracle.com/MissedDeadlineNotification/NotifPrekrocenieTerminu_c/NotifPrekrocenieTerminu"
+        xmlns:con="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        >
+
+    <xsd:import schemaLocation="./CommonObjects_1.4.0.xsd" namespace="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/CommonObjects"/>
+
+    <xsd:element name="NotifPrekrocenieTerminuRequest">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="responsibleRole" type="xsd:string"/>
+                <xsd:element name="timer" type="con:TimerType" />
+                <xsd:element name="instance" type="con:InstanceType" />
+                <xsd:element name="xmlFile" type="con:FileType" />
+                <xsd:element name="pdfFile" type="con:FileType" />
+                <xsd:element name="docMetaData" type="con:DocumentMetaDataType" />
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+</xsd:schema>

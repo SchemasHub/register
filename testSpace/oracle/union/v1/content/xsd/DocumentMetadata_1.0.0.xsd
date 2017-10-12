@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/DocumentMetadata"
+            targetNamespace="http://xmlns.oracle.com/CommonProcess/CommonProcessComposite/DocumentMetadata"
+            elementFormDefault="qualified" attributeFormDefault="unqualified"
+            >
+
+    <xsd:complexType name="DocumentMetadataType">
+        <xsd:sequence>
+            <xsd:element name="fileName" type="xsd:string" />
+            <xsd:element name="documentDelivered" type="xsd:date" />
+            <xsd:element name="documentType" type="xsd:string" />
+            <xsd:element name="documentTypeName" type="xsd:string" />
+            <xsd:element name="companyName" type="xsd:string" />
+            <xsd:element name="insuranceClass" type="xsd:string" />
+            <xsd:element name="processingMethod" type="xsd:string" />
+            <xsd:element name="registryMark" type="xsd:string" />
+            <xsd:element name="securityGroup" type="xsd:string" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:element name="DocumentMetadata" type="DocumentMetadataType" />
+
+</xsd:schema>
