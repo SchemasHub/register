@@ -102,7 +102,7 @@ public class RegisterControllerV1 {
 	 * @return
 	 */
 	@ResponseBody
-	@PostMapping("/n/{workspaceName}")
+	@PostMapping("/{workspaceName}")
 	public final ResponseEntity<?> newWorkspace(@PathVariable("workspaceName") String workspaceName) {
 		log.info("POST /spaces/{workspaceName} - @workspaceName=" + workspaceName);
 		try {

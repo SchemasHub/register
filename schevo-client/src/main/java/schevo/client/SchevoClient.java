@@ -8,6 +8,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -56,6 +57,11 @@ public final class SchevoClient {
 	 */
 	private Path schevoHomeDir;
 
+	/**
+	 * 
+	 * @param schevoUrl
+	 * @throws SchevoClientException
+	 */
 	public SchevoClient(String schevoUrl) throws SchevoClientException {
 		this(schevoUrl, null);
 	}
@@ -290,9 +296,23 @@ public final class SchevoClient {
 
 		/**
 		 * 
-		 * 
-		 * @author Tome (tomecode.com)
-		 *
+		 * @param filter
+		 * @throws SchevoClientException 
+		 */
+		public final void push(PushFilter filter) throws SchevoClientException {
+			Path source = filter.getSource();
+
+			if (!Files.exists(source, LinkOption.NOFOLLOW_LINKS)) {
+				throw new SchevoClientException("Source dir: " + source + " not exists!");
+			}
+			
+			
+			
+
+		}
+
+		/**
+		
 		 */
 		public final class SpaceRef {
 
@@ -430,4 +450,12 @@ public final class SchevoClient {
 			}
 		}
 	}
+
+	public static abstract class PushFilter {
+
+		public abstract Path getSource();
+
+		public abstract boolean accept(Path path);
+	}
+
 }
