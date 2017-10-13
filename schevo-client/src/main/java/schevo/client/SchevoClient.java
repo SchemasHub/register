@@ -297,7 +297,7 @@ public final class SchevoClient {
 		/**
 		 * 
 		 * @param filter
-		 * @throws SchevoClientException 
+		 * @throws SchevoClientException
 		 */
 		public final void push(PushFilter filter) throws SchevoClientException {
 			Path source = filter.getSource();
@@ -305,9 +305,6 @@ public final class SchevoClient {
 			if (!Files.exists(source, LinkOption.NOFOLLOW_LINKS)) {
 				throw new SchevoClientException("Source dir: " + source + " not exists!");
 			}
-			
-			
-			
 
 		}
 

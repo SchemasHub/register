@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import com.google.common.hash.Hashing;
+
 /**
  * 
  * @author tomecode.com
@@ -218,7 +220,10 @@ public final class FileWalker {
 						os.write(buffer, 0, len);
 					}
 				} finally {
-					zis.closeEntry();
+					if (zis != null) {
+						zis.closeEntry();
+					}
+
 				}
 			}
 		}
@@ -252,5 +257,17 @@ public final class FileWalker {
 		//
 		// }
 
+	}
+
+	public static final String fileHash(Path file) {
+		if (!Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS) && Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
+			try {
+				return com.google.common.io.Files.asByteSource(file.toFile()).hash(Hashing.sha256()).toString();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return "unknown";
 	}
 }
