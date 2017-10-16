@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 import org.apache.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
@@ -345,7 +344,7 @@ public class RepositoryVersion extends LocalFsDir {
 	 * 
 	 * @return
 	 */
-	public final FetchStream fetchDocuments() throws IOException {
+	public final FetchStream fetchDocuments() throws Exception {
 		String targetDownloadFileName = name + Config.FETCH_REPOSITORY_EXTENSION;
 		Path targetDownloadFile = fsDownloadDir.resolve(targetDownloadFileName);
 
@@ -358,7 +357,7 @@ public class RepositoryVersion extends LocalFsDir {
 			}
 			// prepare fetch stream
 			return prepareFetchStream(targetDownloadFile);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.error("Failed to create file: " + targetDownloadFile + " ,reason: " + e.getMessage(), e);
 			throw e;
 		} finally {
@@ -436,30 +435,35 @@ public class RepositoryVersion extends LocalFsDir {
 	 * @param targetDownloadFile
 	 * @throws IOException
 	 */
-	private final void createZipFile(Path targetDownloadFile) throws IOException {
+	private final void createZipFile(Path targetDownloadFile) throws Exception {
 
-		List<BasicFile> allFiles = FileWalker.listFiles(getFsContent());
+		List<BasicFile> filesToZip = FileWalker.listFiles(getFsContent());
 
-		try (OutputStream os = Files.newOutputStream(targetDownloadFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-			try (ZipOutputStream zos = new ZipOutputStream(os)) {
+		try (OutputStream osZip = Files.newOutputStream(targetDownloadFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
 
-				for (BasicFile bf : allFiles) {
-					ZipEntry zipEntry = new ZipEntry(bf.getPath().toString());
-					zos.putNextEntry(zipEntry);
+			FileWalker.toZip(osZip, filesToZip);
 
-					try (InputStream zfis = Files.newInputStream(bf.getFsPath(), StandardOpenOption.READ)) {
-						int BUFFER_SIZE = 8192;
-						byte[] buf = new byte[BUFFER_SIZE];
-						int length;
-						while ((length = zfis.read(buf)) >= 0) {
-							zos.write(buf, 0, length);
-						}
-					} finally {
-						zos.closeEntry();
-					}
-				}
-			}
-		} catch (IOException e) {
+			//
+			// try (ZipOutputStream zos = new ZipOutputStream(os)) {
+			//
+			// for (BasicFile bf : allFiles) {
+			// ZipEntry zipEntry = new ZipEntry(bf.getPath().toString());
+			// zos.putNextEntry(zipEntry);
+			//
+			// try (InputStream zfis = Files.newInputStream(bf.getFsPath(),
+			// StandardOpenOption.READ)) {
+			// int BUFFER_SIZE = 8192;
+			// byte[] buf = new byte[BUFFER_SIZE];
+			// int length;
+			// while ((length = zfis.read(buf)) >= 0) {
+			// zos.write(buf, 0, length);
+			// }
+			// } finally {
+			// zos.closeEntry();
+			// }
+			// }
+			// }
+		} catch (Exception e) {
 			log.error("Failed to create repo.zip, reason: " + e.getMessage(), e);
 			throw e;
 		}

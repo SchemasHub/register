@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -26,7 +27,7 @@ import schevo.server.space.SpacesFsLocal;
 public class SpaceLocalFsInitTest extends TestCase {
 
 	static {
-		System.setProperty(Config.CONFIG_SPACE_LOCAL_DIR, Paths.get(System.getProperty("user.dir"), "target", "initSpace").toString());
+		System.setProperty(Config.CONFIG_SPACE_LOCAL_DIR, Paths.get(System.getProperty("user.dir"), "target", UUID.randomUUID().toString()).toString());
 	}
 
 	public final void testInitLocalFs() throws Exception {

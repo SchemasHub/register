@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import com.google.common.hash.Hashing;
 
@@ -30,6 +31,7 @@ import com.google.common.hash.Hashing;
  */
 public final class FileWalker {
 
+	private static final int BUFFER_SIZE = 8192;
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
 	private static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(FileWalker.class);
@@ -195,6 +197,35 @@ public final class FileWalker {
 		}
 		buffer.clear();
 		buffer = null;
+	}
+
+	/**
+	 * add fils to zip
+	 * 
+	 * @param osZip
+	 * @param filesToZip
+	 * @throws Exception
+	 */
+	public static final void toZip(OutputStream osZip, List<BasicFile> filesToZip) throws Exception {
+
+		try (ZipOutputStream zos = new ZipOutputStream(osZip)) {
+
+			for (BasicFile bf : filesToZip) {
+				ZipEntry zipEntry = new ZipEntry(bf.getPath().toString());
+				zos.putNextEntry(zipEntry);
+
+				try (InputStream zfis = Files.newInputStream(bf.getFsPath(), StandardOpenOption.READ)) {
+					byte[] buf = new byte[BUFFER_SIZE];
+					int length;
+					while ((length = zfis.read(buf)) >= 0) {
+						zos.write(buf, 0, length);
+					}
+				} finally {
+					zos.closeEntry();
+				}
+			}
+		}
+
 	}
 
 	/**

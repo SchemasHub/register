@@ -1,10 +1,11 @@
 package schevo.server.api.v1;
 
+import static schevo.UriConfigs.WORKSPACES_URI;
+
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.util.UUID;
 
 import org.hamcrest.Matchers;
@@ -24,7 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import schevo.server.Config;
 import schevo.server.SchevoServer;
-import schevo.server.api.RegisterControllerV1;
+import schevo.server.api.SpacesControllerV1;
 import schevo.server.space.SpacesFsLocal;
 
 /**
@@ -36,23 +37,21 @@ import schevo.server.space.SpacesFsLocal;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = SchevoServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public final class CreateSpaceRestTest {
+public final class CreateSpaceRestTest extends BasicTestInfra {
 
 	static {
 		System.setProperty("spaces.dir", Paths.get(System.getProperty("user.dir"), "target", "restApi" + UUID.randomUUID().toString()).toString());
 	}
 
-	private static final String BASIC_URI = "/register/v1";
-
 	private MockMvc mockMvc;
 
 	@Autowired
-	private RegisterControllerV1 restApi;
+	private SpacesControllerV1 restSpaces;
 
 	@Before
 	public final void setup() {
-		this.mockMvc = MockMvcBuilders.standaloneSetup(restApi).build();
-		restApi = Mockito.mock(RegisterControllerV1.class);
+		this.restSpaces = Mockito.mock(SpacesControllerV1.class);
+		this.mockMvc = MockMvcBuilders.standaloneSetup(restSpaces).build();
 	}
 
 	/**
@@ -63,18 +62,8 @@ public final class CreateSpaceRestTest {
 	@Test
 	public final void testCreateWorkspace() throws Exception {
 		String name = UUID.randomUUID().toString();
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(name), LinkOption.NOFOLLOW_LINKS));
-	}
-
-	private static final String genStr(int len) {
-		String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-		SecureRandom rnd = new SecureRandom();
-		StringBuilder sb = new StringBuilder(len);
-		for (int i = 0; i < len; i++) {
-			sb.append(chars.charAt(rnd.nextInt(chars.length())));
-		}
-		return sb.toString();
 	}
 
 	/**
@@ -86,7 +75,7 @@ public final class CreateSpaceRestTest {
 	public final void testCreateWorkspaceWithLongName() throws Exception {
 		String name = genStr(Config.SPACE_NAME_MAX_LENGTH + 30);
 		// create space with name
-		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name));
+		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + name));
 		result.andExpect(MockMvcResultMatchers.status().isOk());
 		result.andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is(name.toLowerCase().substring(0, Config.SPACE_NAME_MAX_LENGTH))));
 	}
@@ -100,9 +89,9 @@ public final class CreateSpaceRestTest {
 	@Test
 	public final void testCreateWorkspaceWithSpacialChars() throws Exception {
 		// create space with name
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/a A ba1-a ? 19-  AAhoj"))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/a A ba1-a ? 19-  AAhoj"))//
 				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("a-a-ba1-a")));
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/aa   aa BB     a   "))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/aa   aa BB     a   "))//
 				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("aa---aa-bb-----a")));
 	}
 
@@ -114,7 +103,7 @@ public final class CreateSpaceRestTest {
 	@Test
 	public final void testCreateWorkspaceNull() throws Exception {
 		// restApi = Mockito.mock(RegisterApiV1.class);
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI)).andExpect(MockMvcResultMatchers.status().is4xxClientError());
 	}
 
 	/**
@@ -126,10 +115,10 @@ public final class CreateSpaceRestTest {
 	public final void testCreateWorkspacAlreadyExists() throws Exception {
 		// restApi = Mockito.mock(RegisterApiV1.class);
 		String name = UUID.randomUUID().toString();
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + name)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create again should be error
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + name)).andExpect(MockMvcResultMatchers.status().isBadRequest());//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + name)).andExpect(MockMvcResultMatchers.status().isBadRequest());//
 	}
 
 	/**
@@ -144,10 +133,10 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(wName, rName)), LinkOption.NOFOLLOW_LINKS));
 	}
 
@@ -161,9 +150,9 @@ public final class CreateSpaceRestTest {
 		String wname = UUID.randomUUID().toString();
 		String name = genStr(Config.SPACE_NAME_MAX_LENGTH + 30);
 		// create space with name
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wname)).andExpect(MockMvcResultMatchers.status().isOk());
 
-		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/" + name));
+		ResultActions result = this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wname + "/" + name));
 		result.andExpect(MockMvcResultMatchers.status().isOk());
 		result.andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is(name.toLowerCase().substring(0, Config.SPACE_NAME_MAX_LENGTH))));
 	}
@@ -179,10 +168,10 @@ public final class CreateSpaceRestTest {
 		String wName = UUID.randomUUID().toString();
 
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new empty repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 
 	/**
@@ -197,13 +186,13 @@ public final class CreateSpaceRestTest {
 		String rName = "Abcd";
 
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new empty repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isBadRequest());
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName.toLowerCase())).andExpect(MockMvcResultMatchers.status().isBadRequest());
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName.toUpperCase())).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName.toLowerCase())).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName.toUpperCase())).andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 
 	/**
@@ -218,17 +207,17 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 		String rvName = UUID.randomUUID().toString();
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		Path fsPath = Paths.get(wName, rName, rvName);
 		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath), LinkOption.NOFOLLOW_LINKS));
-		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath.resolve(".docs")), LinkOption.NOFOLLOW_LINKS));
-		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath.resolve(".download")), LinkOption.NOFOLLOW_LINKS));
+		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath.resolve("content")), LinkOption.NOFOLLOW_LINKS));
+		Assert.assertEquals(true, Files.exists(SpacesFsLocal.get().getFsPathRoot().resolve(fsPath.resolve("download")), LinkOption.NOFOLLOW_LINKS));
 
 	}
 
@@ -243,17 +232,17 @@ public final class CreateSpaceRestTest {
 		String wName = UUID.randomUUID().toString();
 		String rName = UUID.randomUUID().toString();
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName))//
 				.andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 		// create empty repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/ / / ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + "/ / / ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName + "/ ")).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
 	}
 
@@ -269,14 +258,14 @@ public final class CreateSpaceRestTest {
 		String rName = UUID.randomUUID().toString();
 		String rvName = UUID.randomUUID().toString();
 		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
 		// create new repository version
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isBadRequest());
 	}
 
 	/**
@@ -288,13 +277,13 @@ public final class CreateSpaceRestTest {
 	@Test
 	public final void testCreateRepositoryWithSpacialChars() throws Exception {
 		String wname = UUID.randomUUID().toString();
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wname))//
 				.andExpect(MockMvcResultMatchers.status().isOk());
 
 		// create space with name
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/a A ba1-a ? 19-  AAhoj"))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wname + "/a A ba1-a ? 19-  AAhoj"))//
 				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("a-a-ba1-a")));
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wname + "/aa   aa BB     a   "))//
+		this.mockMvc.perform(MockMvcRequestBuilders.post(WORKSPACES_URI + "/" + wname + "/aa   aa BB     a   "))//
 				.andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("aa---aa-bb-----a")));
 	}
 

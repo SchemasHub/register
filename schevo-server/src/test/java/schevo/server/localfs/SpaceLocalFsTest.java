@@ -11,7 +11,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import junit.framework.TestCase;
-import schevo.server.Config;
 import schevo.server.SpaceException.RepositoryExistsException;
 import schevo.server.SpaceException.RepositoryVersionExistsException;
 import schevo.server.SpaceException.WorkspaceExistsException;
@@ -78,7 +77,6 @@ public final class SpaceLocalFsTest extends TestCase {
 		Assert.assertNotNull(workspace);
 		Assert.assertEquals("w01", workspace.getName());
 		Assert.assertTrue("Worksapce not exists in FS", Files.exists(workspace.getFsPath(), LinkOption.NOFOLLOW_LINKS));
-		Assert.assertTrue("Worksapce meta dir not exists in FS", Files.exists(workspace.getFsPath().resolve(Config.INTERNAL_META_DATA_DIR), LinkOption.NOFOLLOW_LINKS));
 		try {
 			workspace = space.newWorkspace("w01");
 			Assert.fail("workspace already exists, exception should be throwed!");
@@ -108,7 +106,6 @@ public final class SpaceLocalFsTest extends TestCase {
 		Assert.assertNotNull(newRepo);
 		Assert.assertEquals(repoName, newRepo.getName());
 		Assert.assertTrue("Repository not exists in FS", Files.exists(newRepo.getFsPath(), LinkOption.NOFOLLOW_LINKS));
-		Assert.assertTrue("Repository meta dir not exists in FS", Files.exists(newRepo.getFsPath().resolve(Config.INTERNAL_META_DATA_DIR), LinkOption.NOFOLLOW_LINKS));
 		try {
 			workspace.newRepository(repoName);
 			Assert.fail("repository already exists, exception should be throwed!");
@@ -140,7 +137,6 @@ public final class SpaceLocalFsTest extends TestCase {
 		Assert.assertNotNull(newVersion);
 		Assert.assertEquals(versionName, newVersion.getName());
 		Assert.assertTrue("Repository version not exists in FS", Files.exists(newVersion.getFsPath(), LinkOption.NOFOLLOW_LINKS));
-		Assert.assertTrue("Repository version meta dir not exists in FS", Files.exists(newVersion.getFsPath().resolve(Config.INTERNAL_META_DATA_DIR), LinkOption.NOFOLLOW_LINKS));
 		try {
 			repository.newVersion(versionName);
 			Assert.fail("repository version already exists, exception should be throwed!");

@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
@@ -26,9 +25,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import schevo.UriConfigs;
 import schevo.common.FileWalker;
+import schevo.common.SpaceRef;
 import schevo.server.SchevoServer;
-import schevo.server.api.RegisterControllerV1;
+import schevo.server.api.DocumentControllerV1;
+import schevo.server.api.SpacesControllerV1;
 
 /**
  * several tests to download documents from space
@@ -38,45 +40,46 @@ import schevo.server.api.RegisterControllerV1;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = SchevoServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public final class DownloadDocumentsRestTest {
+public final class DownloadDocumentsRestTest extends BasicTestInfra {
 
 	static {
 		System.setProperty("spaces.dir", Paths.get(System.getProperty("user.dir"), "target", "spacesApi" + UUID.randomUUID().toString()).toString());
 	}
 
-	private static final String BASIC_URI = "/register/v1";
-
-	private MockMvc mockMvc;
+	@Autowired
+	private SpacesControllerV1 restSpaces;
 
 	@Autowired
-	private RegisterControllerV1 restApi;
+	private DocumentControllerV1 restDocuments;
 
 	@Before
 	public final void setup() {
-		this.mockMvc = MockMvcBuilders.standaloneSetup(restApi).build();
-		restApi = Mockito.mock(RegisterControllerV1.class);
+		this.restSpaces = Mockito.mock(SpacesControllerV1.class);
+		this.restDocuments = Mockito.mock(DocumentControllerV1.class);
+		this.mockMvc = MockMvcBuilders.standaloneSetup(restSpaces, restDocuments).build();
+
 	}
 
-	private final String[] createAndPushDocsToSpace(MockMultipartFile[] files) throws Exception {
-		String spaceNames[] = new String[] { "wf" + System.nanoTime(), "rf" + System.nanoTime(), "rv1" };
+	/**
+	 * create new space and push docs
+	 * 
+	 * @param files
+	 * @return
+	 * @throws Exception
+	 */
+	private final SpaceRef newSpaceAndPushDocs(MockMultipartFile[] files) throws Exception {
+		SpaceRef spaceRef = createNewTestSpace();
 
-		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + spaceNames[0])).andExpect(MockMvcResultMatchers.status().isOk());
-		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + spaceNames[0] + "/" + spaceNames[1])).andExpect(MockMvcResultMatchers.status().isOk());
-		// create new repository version
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + spaceNames[0] + "/" + spaceNames[1] + "/" + spaceNames[2])).andExpect(MockMvcResultMatchers.status().isOk());
-
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments");
+		MockMultipartHttpServletRequestBuilder pushApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI);
 		for (MockMultipartFile uploadFile : files) {
-			restApi.file(uploadFile);
+			pushApi.file(uploadFile);
 		}
 		// upload to
-		restApi.param("spaceRef", spaceNames[0] + "/" + spaceNames[1] + "/" + spaceNames[2]);
+		pushApi.param(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath());
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
+		this.mockMvc.perform(pushApi).andExpect(MockMvcResultMatchers.status().isOk());
 
-		return spaceNames;
+		return spaceRef;
 	}
 
 	/**
@@ -92,18 +95,18 @@ public final class DownloadDocumentsRestTest {
 				new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes())//
 		};
 
-		String[] spaceRef = createAndPushDocsToSpace(files);
-		ResultActions resultActions = performRequest(spaceRef, "/fetchDocuments");
+		SpaceRef spaceRef = newSpaceAndPushDocs(files);
+		ResultActions resultActions = performRequest(spaceRef, schevo.UriConfigs.FETCH_URI);
 
-		Path fsFetchFile = FileWalker.mkFile(Paths.get(System.getProperty("user.dir"), "target", "fetch", UUID.randomUUID().toString(), spaceRef[0] + ".zip"));
+		Path fsFetchFile = FileWalker.mkFile(Paths.get(System.getProperty("user.dir"), "target", "fetch", UUID.randomUUID().toString(), spaceRef.getWorkspace() + ".zip"));
 		resultActions.andExpect(MockMvcResultMatchers.status().isOk());
 		MockHttpServletResponse response = resultActions.andReturn().getResponse();
 		String fnName = ((String) response.getHeaderValue("Content-disposition")).split("filename=")[1];
 
 		// compare name
-		Assert.assertEquals(spaceRef[2] + ".zip", fnName);
+		Assert.assertEquals(spaceRef.getVersion() + ".zip", fnName);
 		Files.write(fsFetchFile, response.getContentAsByteArray());
-		// check if file was downloaded
+		// check if a file has downloaded successfully ...
 		Assert.assertTrue(fsFetchFile.toFile().length() > 1);
 
 		try (ZipFile zf = new ZipFile(fsFetchFile.toFile())) {
@@ -132,7 +135,7 @@ public final class DownloadDocumentsRestTest {
 	 */
 	@Test
 	public final void testFetchRepositoryNotFound() throws Exception {
-		performRequest(new String[] { "w", "r", "b" }, "/fetchDocuments").andExpect(MockMvcResultMatchers.status().isNotFound());
+		performRequest(new SpaceRef("w", "r", UUID.randomUUID().toString()), UriConfigs.FETCH_URI).andExpect(MockMvcResultMatchers.status().isNotFound());
 	}
 
 	/**
@@ -148,9 +151,9 @@ public final class DownloadDocumentsRestTest {
 				new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes())//
 		};
 		// create temp space
-		String[] spaceRef = createAndPushDocsToSpace(files);
+		SpaceRef spaceRef = newSpaceAndPushDocs(files);
 
-		performRequest(spaceRef, "/fetchDocuments", "scope=single");
+		performRequest(spaceRef, UriConfigs.FETCH_URI, "scope=single");
 	}
 
 	/**
@@ -161,11 +164,11 @@ public final class DownloadDocumentsRestTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private final ResultActions performRequest(String[] spaceRef, String uri, String... params) throws Exception {
+	private final ResultActions performRequest(SpaceRef spaceRef, String uri, String... params) throws Exception {
 
-		MockHttpServletRequestBuilder restApi = MockMvcRequestBuilders.get(BASIC_URI + uri);
+		MockHttpServletRequestBuilder restApi = MockMvcRequestBuilders.get(uri);
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + spaceRef[2]);
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRef.toString());
 
 		if (params != null) {
 			for (String p : params) {

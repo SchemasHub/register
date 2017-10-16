@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,14 +16,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import schevo.UriConfigs;
+import schevo.common.SpaceRef;
 import schevo.server.SchevoServer;
-import schevo.server.api.RegisterControllerV1;
+import schevo.server.api.DocumentControllerV1;
+import schevo.server.api.SpaceError;
+import schevo.server.api.SpacesControllerV1;
 import schevo.server.space.SpacesFsLocal;
 
 /**
@@ -33,43 +38,24 @@ import schevo.server.space.SpacesFsLocal;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = SchevoServer.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public final class UploadDocumentsRestTest {
+public final class UploadDocumentsRestTest extends BasicTestInfra {
 
 	static {
 		System.setProperty("spaces.dir", Paths.get(System.getProperty("user.dir"), "target", "spacesApi" + UUID.randomUUID().toString()).toString());
 	}
 
-	private static final String BASIC_URI = "/register/v1";
-
-	private MockMvc mockMvc;
+	@Autowired
+	private SpacesControllerV1 restSpaces;
 
 	@Autowired
-	private RegisterControllerV1 restApi;
+	private DocumentControllerV1 restDocuments;
 
 	@Before
 	public final void setup() {
-		this.mockMvc = MockMvcBuilders.standaloneSetup(restApi).build();
-		restApi = Mockito.mock(RegisterControllerV1.class);
-	}
+		this.restSpaces = Mockito.mock(SpacesControllerV1.class);
+		this.restDocuments = Mockito.mock(DocumentControllerV1.class);
+		this.mockMvc = MockMvcBuilders.standaloneSetup(restSpaces, restDocuments).build();
 
-	/**
-	 * just create new test space
-	 * 
-	 * @return
-	 * @throws Exception
-	 */
-	private final String[] createTestSpace() throws Exception {
-		String wName = "w" + System.nanoTime();
-		String rName = "r" + System.nanoTime();
-		String rvName = "1";
-		// create new workspace
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName)).andExpect(MockMvcResultMatchers.status().isOk());
-		// create new repository
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName)).andExpect(MockMvcResultMatchers.status().isOk());
-		// create new repository version
-		this.mockMvc.perform(MockMvcRequestBuilders.post(BASIC_URI + "/spaces/" + wName + "/" + rName + "/" + rvName)).andExpect(MockMvcResultMatchers.status().isOk());
-
-		return new String[] { wName, rName, rvName };
 	}
 
 	/**
@@ -79,58 +65,71 @@ public final class UploadDocumentsRestTest {
 	 */
 	@Test
 	public void testUploadToNotExistsWorkspace() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 		// prepare temp files
 
 		// prepare files for rest
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments").file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI).file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + UUID.randomUUID().toString() + "/" + UUID.randomUUID().toString());
-		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isNotFound());
 
-		// upload to
-		restApi.param("spaceRef", spaceRef[0]);
+		String spaceRefPath = UUID.randomUUID().toString() + "/" + spaceRef.getRepository() + "/" + spaceRef.getVersion();
+
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRefPath);
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isNotFound());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
+
+		SpaceError expectedError = SpaceError.spaceRefNotFound(spaceRefPath);
+
+		Assert.assertEquals(expectedError.getName(), resp.getString("name"));
+		Assert.assertEquals(expectedError.getMessage(), resp.getString("message"));
 
 	}
 
 	@Test
 	public void testUploadToNotExistsRepository() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 		// prepare temp files
 
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments").file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI).file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
+
+		String spaceRefPath = spaceRef.getWorkspace() + "/" + UUID.randomUUID().toString() + "/" + spaceRef.getVersion();
 
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + UUID.randomUUID().toString());
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRefPath);
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isNotFound());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1]);
-		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
+
+		SpaceError expectedError = SpaceError.spaceRefNotFound(spaceRefPath);
+
+		Assert.assertEquals(expectedError.getName(), resp.getString("name"));
+		Assert.assertEquals(expectedError.getMessage(), resp.getString("message"));
+
 	}
 
 	@Test
 	public void testUploadToNotExistsRepositoryVersion() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 		// prepare temp files
 
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments").file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI).file(new MockMultipartFile("file", "ahoj", "application/json", "{\"json\": \"someValue\"}".getBytes()));
+
+		String spaceRefPath = spaceRef.getWorkspace() + "/" + spaceRef.getRepository() + "/" + UUID.randomUUID().toString();
 
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + UUID.randomUUID().toString());
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRefPath);
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isNotFound());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-		// upload to
-		restApi.param("spaceRef", spaceRef[0]);
-		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isNotFound());
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
 
+		SpaceError expectedError = SpaceError.spaceRefNotFound(spaceRefPath);
+
+		Assert.assertEquals(expectedError.getName(), resp.getString("name"));
+		Assert.assertEquals(expectedError.getMessage(), resp.getString("message"));
 	}
 
 	/**
@@ -140,7 +139,7 @@ public final class UploadDocumentsRestTest {
 	 */
 	@Test
 	public void testUploadFileWithoutNames() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 		// prepare temp files
 
 		MockMultipartFile[] files = new MockMultipartFile[] { //
@@ -149,17 +148,24 @@ public final class UploadDocumentsRestTest {
 		};
 
 		// prepare files for rest
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments");
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI);
 		for (MockMultipartFile uploadFile : files) {
 			restApi.file(uploadFile);
 		}
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + spaceRef[2]);
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath());
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef[0], spaceRef[1], spaceRef[2]));
-		Path fsDocs = fsVersion.resolve(".docs");
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
+
+		SpaceError expectedError = SpaceError.pushFileNameEmpty(spaceRef.getPath());
+
+		Assert.assertEquals(expectedError.getName(), resp.getString("name"));
+		Assert.assertEquals(expectedError.getMessage(), resp.getString("message"));
+
+		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef.getWorkspace(), spaceRef.getRepository(), spaceRef.getVersion()));
+		Path fsDocs = fsVersion.resolve("content");
 
 		Assert.assertEquals(0, Files.list(fsDocs).count());
 	}
@@ -171,7 +177,7 @@ public final class UploadDocumentsRestTest {
 	 */
 	@Test
 	public void testUploadMultipleFiles() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 
 		// prepare temp files
 
@@ -182,18 +188,23 @@ public final class UploadDocumentsRestTest {
 		};
 
 		// prepare files for rest
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments");
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI);
 		for (MockMultipartFile uploadFile : files) {
 			restApi.file(uploadFile);
 		}
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + spaceRef[2]);
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath());
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
 
-		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef[0], spaceRef[1], spaceRef[2]));
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
+
+		Assert.assertEquals(3, resp.getJSONArray("singleFiles").length());
+		Assert.assertEquals(0, resp.getJSONArray("packageFiles").length());
+
+		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef.getWorkspace(), spaceRef.getRepository(), spaceRef.getVersion()));
 		Assert.assertTrue("Repository version not exists", Files.exists(fsVersion, LinkOption.NOFOLLOW_LINKS));
-		Path fsDocs = fsVersion.resolve(".docs");
+		Path fsDocs = fsVersion.resolve("content");
 		Assert.assertTrue("Repository version not exists", Files.exists(fsDocs, LinkOption.NOFOLLOW_LINKS));
 
 		Assert.assertEquals(files.length, Files.list(fsDocs).count());
@@ -211,27 +222,32 @@ public final class UploadDocumentsRestTest {
 	 */
 	@Test
 	public void testUploadZipFile() throws Exception {
-		String spaceRef[] = createTestSpace();
+		SpaceRef spaceRef = createNewTestSpace();
 
 		// prepare temp files
 
 		MockMultipartFile[] files = new MockMultipartFile[] { //
-				new MockMultipartFile("file", "sampleZipBasic.zip", "application/zio", Files.readAllBytes(Paths.get(UploadDocumentsRestTest.class.getResource("sampleZipBasic.zip").toURI()))) //
+				new MockMultipartFile("file", "sampleZipBasic.zip", "application/zip", Files.readAllBytes(Paths.get(UploadDocumentsRestTest.class.getResource("sampleZipBasic.zip").toURI()))) //
 		};
 
 		// prepare files for rest
-		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(BASIC_URI + "/pushDocuments");
+		MockMultipartHttpServletRequestBuilder restApi = MockMvcRequestBuilders.fileUpload(UriConfigs.PUSH_URI);
 		for (MockMultipartFile uploadFile : files) {
 			restApi.file(uploadFile);
 		}
 		// upload to
-		restApi.param("spaceRef", spaceRef[0] + "/" + spaceRef[1] + "/" + spaceRef[2]);
+		restApi.param(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath());
 		// send post request
-		this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
+		ResultActions resultActions = this.mockMvc.perform(restApi).andExpect(MockMvcResultMatchers.status().isOk());
 
-		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef[0], spaceRef[1], spaceRef[2]));
+		JSONObject resp = new JSONObject(resultActions.andReturn().getResponse().getContentAsString());
+
+		Assert.assertEquals(0, resp.getJSONArray("singleFiles").length());
+		Assert.assertEquals(1, resp.getJSONArray("packageFiles").length());
+
+		Path fsVersion = SpacesFsLocal.get().getFsPathRoot().resolve(Paths.get(spaceRef.getWorkspace(), spaceRef.getRepository(), spaceRef.getVersion()));
 		Assert.assertTrue("Repository version not exists", Files.exists(fsVersion, LinkOption.NOFOLLOW_LINKS));
-		Path fsDocs = fsVersion.resolve(".docs");
+		Path fsDocs = fsVersion.resolve("content");
 		Assert.assertTrue("Repository version not exists", Files.exists(fsDocs, LinkOption.NOFOLLOW_LINKS));
 
 		// check if all files exists

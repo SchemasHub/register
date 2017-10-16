@@ -4,8 +4,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import schevo.client.SchevoClient.PushFilter;
-
 public final class ClientMainTest {
 
 	public static final void main(String[] arg) throws SchevoClientException {
@@ -17,14 +15,15 @@ public final class ClientMainTest {
 		List<String> versions = client.listVersions("oracle", "union");
 		versions.get(0);
 
-		schevo.client.SchevoClient.Space space = client.getSpace("oracle", "union", "v10");
+		Space space = client.getSpace("oracle", "union", "v1");
 
 		// oracle/union/v1
-		// SpaceRef.get('oracle/union/v1');
+		// SpaceRef.get('oracle/union/v 1');
 
 		space.fetch();
 
-		space.push(new PushFilter() {
+		// push new files
+		space.push(new PushDocumentFilter() {
 
 			@Override
 			public final Path getSource() {
@@ -36,5 +35,8 @@ public final class ClientMainTest {
 				return true;
 			}
 		});
+
+		space.fetch();
+
 	}
 }
