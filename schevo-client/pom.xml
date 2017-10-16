@@ -32,13 +32,6 @@
 			<artifactId>schevo-common</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-
-
-		<dependency>
-			<groupId>com.mashape.unirest</groupId>
-			<artifactId>unirest-java</artifactId>
-			<version>1.4.9</version>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
@@ -70,27 +63,12 @@
 			<artifactId>json</artifactId>
 			<version>20170516</version>
 		</dependency>
-		<dependency>
-			<groupId>remkop</groupId>
-			<artifactId>picocli</artifactId>
-			<version>1.0.1</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/lib-ext/picocli-1.0.1.jar</systemPath>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/log4j/log4j -->
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.17</version>
 		</dependency>
-
-
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<version>3.9.0</version>
-		</dependency>
-
 	</dependencies>
 
 

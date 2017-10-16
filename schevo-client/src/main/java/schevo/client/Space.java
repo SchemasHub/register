@@ -23,8 +23,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.mashape.unirest.http.exceptions.UnirestException;
-
 import schevo.UriConfigs;
 import schevo.client.SchevoHttpClient.RepsonseHandler;
 import schevo.common.BasicFile;
@@ -107,7 +105,7 @@ public final class Space {
 	 * @throws JSONException
 	 * @throws SchevoClientException
 	 */
-	private final void fetchData() throws UnirestException, JSONException, SchevoClientException {
+	private final void fetchData() throws SchevoClientException {
 		// get info about space
 		try {
 			JSONObject resp = SchevoHttpClient.doGetJson(
