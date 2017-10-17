@@ -16,15 +16,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import schevo.UriConfigs;
-import schevo.client.SchevoHttpClient.RepsonseHandler;
+import schevo.client.SchevoClient.HttpGenericResponseHandler;
+import schevo.client.SchevoClient.HttpJsonResponseHandler;
 import schevo.common.BasicFile;
 import schevo.common.FileWalker;
 import schevo.common.SpaceRef;
@@ -79,17 +89,8 @@ public final class Space {
 	 * @throws Exception
 	 */
 	public final Space fetch() throws SchevoClientException {
-		try {
-			fetchData();
-			fetchContent();
-
-		} catch (SchevoClientException e) {
-			throw e;
-		} catch (Exception e) {
-			SchevoClientException ex = new SchevoClientException("Failed to fetch space: " + spaceRef + ", reason: " + e.getMessage(), e);
-			log.error(ex.getMessage(), e);
-			throw ex;
-		}
+		fetchDocumentList();
+		fetchContent();
 		// finally {
 		// sl.unlockWrite(wStamp);
 		// }
@@ -105,41 +106,49 @@ public final class Space {
 	 * @throws JSONException
 	 * @throws SchevoClientException
 	 */
-	private final void fetchData() throws SchevoClientException {
-		// get info about space
-		try {
-			JSONObject resp = SchevoHttpClient.doGetJson(
-					//
-					new URIBuilder(this.url + UriConfigs.REPOSITORY_VERSION_URI//
-							.replace("{workspaceName}", spaceRef.getWorkspace()) //
-							.replace("{repositoryName}", spaceRef.getRepository()) //
-							.replace("{repositoryVersionName}", spaceRef.getVersion())) //
-									.build()
-			//
-			);
+	private final void fetchDocumentList() throws SchevoClientException {
+		// target/request uri
+		String targetUri = this.url + UriConfigs.REPOSITORY_VERSION_URI//
+				.replace("{workspaceName}", spaceRef.getWorkspace()) //
+				.replace("{repositoryName}", spaceRef.getRepository()) //
+				.replace("{repositoryVersionName}", spaceRef.getVersion());
 
-			JSONArray adocs = resp.getJSONArray("documents");
-			for (int i = 0; i <= adocs.length() - 1; i++) {
-				JSONObject jo = adocs.getJSONObject(i);
+		// execute request
 
-				Document document = new Document();
-				if (jo.has("id")) {
-					document.setId(jo.getString("id"));
-				}
-				if (jo.has("hash")) {
-					document.setHash(jo.getString("hash"));
-				}
-				if (jo.has("path")) {
-					document.setPath(jo.getString("path"));
-				}
-				if (jo.has("type")) {
-					document.setType(jo.getString("type"));
-				}
-				this.documents.add(document);
+		try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+
+			HttpJsonResponseHandler respJson = new HttpJsonResponseHandler();
+			// execute request
+			httpClient.execute(RequestBuilder.get(targetUri).build(), respJson);
+			// parse documents from server
+			parseDocumentListFromSever(respJson.getResponse());
+
+		} catch (IOException e1) {
+			log.error("Failed to fetch document list from space: " + targetUri + " ,reason: " + e1.getMessage(), e1);
+			throw new SchevoClientException("Failed to fetch document list from space: " + targetUri + " ,reason: " + e1.getMessage(), e1);
+		}
+
+	}
+
+	private final void parseDocumentListFromSever(JSONObject resp) {
+		JSONArray adocs = resp.getJSONArray("documents");
+		for (int i = 0; i <= adocs.length() - 1; i++) {
+			JSONObject jo = adocs.getJSONObject(i);
+
+			Document document = new Document();
+			if (jo.has("id")) {
+				document.setId(jo.getString("id"));
 			}
-
-		} catch (IOException | URISyntaxException e) {
-			throw new SchevoClientException("Failed to fetch data, reason: " + e.getMessage(), e);
+			if (jo.has("hash")) {
+				document.setHash(jo.getString("hash"));
+			}
+			if (jo.has("path")) {
+				document.setPath(jo.getString("path"));
+			}
+			if (jo.has("type")) {
+				document.setType(jo.getString("type"));
+			}
+			this.documents.add(document);
 		}
 
 	}
@@ -147,32 +156,60 @@ public final class Space {
 	/**
 	 * fetch content i.e. document(s)/schema(s) from schevo
 	 * 
-	 * @throws UnirestException
-	 * @throws JSONException
 	 * @throws SchevoClientException
-	 * @throws IOException
 	 */
 	private final void fetchContent() throws SchevoClientException {
+		String targetUri = this.url + UriConfigs.FETCH_URI;
 
-		// SchevoHttpClient.doGet(this.url + SchevoUri.FETCH_URI)
+		try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 
-		try {
-
-			URI uri = new URIBuilder(this.url + UriConfigs.FETCH_URI)//
+			URI uri = new URIBuilder(targetUri)//
 					.addParameter(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath())//
 					.build();
 
-			SchevoHttpClient.doGetBinary(uri, new RepsonseHandler() {
+			// generic response - download content zip file and extract it to lcoal FS
+			HttpGenericResponseHandler<Object> response = new HttpGenericResponseHandler<Object>() {
 
 				@Override
-				public void responseContent(CloseableHttpResponse response) throws UnsupportedOperationException, IOException {
-					writeAndExtractFetchZipInLocalFs(response.getFirstHeader(UriConfigs.HEADER_FETCH_NAME), response.getEntity().getContent());
-				}
-			});
+				protected final void handleResponseOK(HttpResponse httpResponse) throws ClientProtocolException, IOException {
+					try {
+						writeAndExtractFetchZipInLocalFs(httpResponse.getFirstHeader(UriConfigs.HEADER_FETCH_NAME), httpResponse.getEntity().getContent());
+					} catch (UnsupportedOperationException | SchevoClientException e) {
 
-		} catch (IOException | URISyntaxException e) {
-			throw new SchevoClientException("Failed to fetch data, reason: " + e.getMessage(), e);
+					}
+				}
+			};
+
+			// HttpResponseBinary responseBinary = new HttpResponseBinary();
+			httpClient.execute(new HttpGet(uri), response);
+
+			// call if there was somewhere error
+			response.getResponse();
+
+		} catch (IOException | URISyntaxException e1) {
+			log.error("Failed to fetch data: " + targetUri + " ,reason: " + e1.getMessage(), e1);
+			throw new SchevoClientException("Failed to fetch data: " + targetUri + " ,reason: " + e1.getMessage(), e1);
 		}
+
+		// try {
+		// URI uri = new URIBuilder(targetUri)//
+		// .addParameter(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath())//
+		// .build();
+		//
+		// SchevoHttpClient.doGetBinary(uri, new RepsonseHandler() {
+		//
+		// @Override
+		// public void responseContent(CloseableHttpResponse response) throws
+		// UnsupportedOperationException, IOException {
+		// writeAndExtractFetchZipInLocalFs(response.getFirstHeader(UriConfigs.HEADER_FETCH_NAME),
+		// response.getEntity().getContent());
+		// }
+		// });
+		//
+		// } catch (IOException | URISyntaxException e) {
+		// throw new SchevoClientException("Failed to fetch data, reason: " +
+		// e.getMessage(), e);
+		// }
 
 	}
 
@@ -183,19 +220,22 @@ public final class Space {
 	 * @param fnHeader
 	 * @param isFile
 	 * @throws IOException
+	 * @throws SchevoClientException
 	 */
-	private final void writeAndExtractFetchZipInLocalFs(org.apache.http.Header fnHeader, InputStream isFile) throws IOException {
+	private final void writeAndExtractFetchZipInLocalFs(org.apache.http.Header fnHeader, InputStream isFile) throws SchevoClientException {
 		String fileName = (fnHeader == null ? null : fnHeader.getValue());
 		if (Utils.strOrNull(fileName) == null) {
 			fileName = UUID.randomUUID().toString() + ".zip";
 		}
 
-		//
-		// prepare dirs
-		//
-		Path contentDir = FileWalker.mkDirs(homeDir.resolve("content"));
-		Path fetchFile = FileWalker.mkFile(homeDir.resolve("fetch").resolve(fileName));
 		try {
+
+			//
+			// prepare dirs
+			//
+			Path contentDir = FileWalker.mkDirs(homeDir.resolve("content"));
+			Path fetchFile = FileWalker.mkFile(homeDir.resolve("fetch").resolve(fileName));
+
 			// copy, save to FS
 			try (ReadableByteChannel src = Channels.newChannel(isFile)) {
 				try (WritableByteChannel dest = Channels.newChannel(Files.newOutputStream(fetchFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE))) {
@@ -207,7 +247,7 @@ public final class Space {
 
 		} catch (IOException e) {
 			log.error("Failed to fetch or extract the zip file from schevo, reason: " + e.getMessage(), e);
-			throw e;
+			throw new SchevoClientException("Failed to fetch or extract the zip file from schevo, reason: " + e.getMessage(), e);
 		}
 
 	}
@@ -219,8 +259,44 @@ public final class Space {
 	 * @throws SchevoClientException
 	 */
 	public final void push(PushDocumentFilter filter) throws SchevoClientException {
-		Path source = filter.getSource();
+		Path pushFile = createPushFile(filter);
 
+		// create multipart request
+		HttpEntity data = MultipartEntityBuilder.create()//
+				.setMode(HttpMultipartMode.BROWSER_COMPATIBLE)//
+				.addBinaryBody("file", pushFile.toFile(), ContentType.APPLICATION_OCTET_STREAM, pushFile.getFileName().toString()).build();
+
+		try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+			//
+			// response handler
+			HttpJsonResponseHandler responseJson = new HttpJsonResponseHandler();
+			// execute request
+			httpclient.execute(
+					//
+					RequestBuilder.post(this.url + UriConfigs.PUSH_URI)//
+							.addParameter(UriConfigs.PARAM_SPACE_REF, spaceRef.getPath()).setEntity(data).build()
+					//
+					, responseJson);
+
+			// get json response
+			JSONObject json = responseJson.getResponse();
+			// TODO: and what with response?
+		} catch (IOException e) {
+			log.error("Failed to push: " + filter.getSource() + " ,reason: " + e.getMessage(), e);
+			throw new SchevoClientException(e.getMessage(), e);
+		}
+
+	}
+
+	/**
+	 * prepare push 'file'
+	 * 
+	 * @param filter
+	 * @return
+	 * @throws SchevoClientException
+	 */
+	private final Path createPushFile(PushDocumentFilter filter) throws SchevoClientException {
+		Path source = filter.getSource();
 		if (!Files.exists(source, LinkOption.NOFOLLOW_LINKS)) {
 			throw new SchevoClientException("Source dir: " + source + " not exists!");
 		}
@@ -238,35 +314,11 @@ public final class Space {
 				FileWalker.toZip(osZip, filesForPush);
 			}
 		} catch (Exception e) {
-			throw new SchevoClientException("Failed to create list of ifles for push, reason: " + e.getMessage(), e);
+			log.error("Failed to push, reason: " + e.getMessage(), e);
+			throw new SchevoClientException("Failed to push, reason: " + e.getMessage(), e);
 		}
 
-		try {
-			//
-			// // create multipart body
-			// RequestBody body = new MultipartBody.Builder()//
-			// .setType(MultipartBody.FORM)//
-			// .addFormDataPart("file", pushFile.getFileName().toString(),
-			// RequestBody.create(MEDIATYPE_ZIP, pushFile.toFile())).build();
-			// // build url
-			//
-			// HttpUrl url = new HttpUrl.Builder()//
-			// .scheme("http")//
-			// .host("localhost").port(9999)//
-			// .addPathSegment("documents").addPathSegment("v1").addPathSegment("push")//
-			// .addQueryParameter("spaceRef", spaceRef)//
-			// .build();
-			//
-			// Request request = new Request.Builder().url(url).post(body).build();
-			//
-			// Response response = httpClient.newCall(request).execute();
-			// if (!response.isSuccessful()) {
-			//
-			// String result = response.body().string();
-			// throw new SchevoClientException("Failed to push, reason: " + result);
-			// }
-		} catch (Exception e) {
-			throw new SchevoClientException(e.getMessage(), e);
-		}
+		return pushFile;
+
 	}
 }
